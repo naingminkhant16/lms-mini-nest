@@ -16,6 +16,7 @@ import { QuestionModule } from './question/question.module';
 import { StudentQuizModule } from './student-quiz/student_quiz.module';
 import { LessonModule } from './lesson/lesson.module';
 import { ModuleModule } from './module/module.module';
+import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { ModuleModule } from './module/module.module';
     StudentQuizModule,
     LessonModule,
     ModuleModule,
+    CommonModule,
   ],
   controllers: [AppController],
   providers: [AppService],

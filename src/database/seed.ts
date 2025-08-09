@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import { runRoleSeeder } from './seeders/role.seeder';
 import { env } from 'process';
+import { runAdminUserSeeder } from './seeders/admin-user.seeder';
 
 const AppDataSource = new DataSource({
   type: 'postgres',
@@ -17,6 +18,7 @@ const AppDataSource = new DataSource({
 AppDataSource.initialize()
   .then(async () => {
     await runRoleSeeder(AppDataSource);
+    await runAdminUserSeeder(AppDataSource);
     await AppDataSource.destroy();
     process.exit(0);
   })

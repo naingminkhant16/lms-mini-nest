@@ -6,12 +6,10 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
-  OneToOne,
 } from 'typeorm';
 import { EnrollmentStatus } from '../enums/enrollment_status.enum';
 import { User } from 'src/user/entities/user.entity';
 import { Course } from 'src/course/entities/course.entity';
-import { Certificate } from 'src/certificate/entities/certificate.entity';
 
 @Entity()
 export class Enrollment {
