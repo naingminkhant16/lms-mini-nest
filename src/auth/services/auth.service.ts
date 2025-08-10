@@ -25,6 +25,7 @@ export class AuthService {
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const user = await this.userRepo.findOne({
       where: { email: loginDto.email },
+      relations: ['role'],
     });
     // User not found
     if (!user) throw new NotFoundException(`User ${loginDto.email} not found`);
@@ -55,10 +56,13 @@ export class AuthService {
   async refreshToken(
     refreshToken: string,
   ): Promise<{ accessToken: string; newRefreshToken: string }> {
-    const payload = this.jwtService.verify(refreshToken);
+    const payload = await this.jwtService.verifyAsync(refreshToken);
     if (!payload) throw new UnauthorizedException('Invalid refresh token');
 
-    const user = await this.userRepo.findOne({ where: { id: payload.sub } });
+    const user = await this.userRepo.findOne({
+      where: { id: payload.sub },
+      relations: ['role'],
+    });
     if (!user) throw new NotFoundException('User not found');
 
     const newPayload = {

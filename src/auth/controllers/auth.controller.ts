@@ -1,16 +1,20 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
   Req,
   Res,
+  UseGuards,
 } from '@nestjs/common';
 import { LoginDto } from '../dto/login.dto';
 import { AuthService } from 'src/auth/services/auth.service';
 import { ApiResponse } from 'src/common/utils/api-response';
 import { Request, Response } from 'express';
+import { AuthGuard } from 'src/common/guards/auth.guard';
+import { AdminGuard } from 'src/common/guards/admin.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -56,5 +60,12 @@ export class AuthController {
       { access_token: accessToken },
       'Refresh Token Successful',
     );
+  }
+
+  // Test Auth Middleware / access authorized resource
+  @UseGuards(AuthGuard, AdminGuard)
+  @Get('/test-auth')
+  testAuth(@Req() req: Request) {
+    return ApiResponse.success({ user: req['auth'] }, 'Authorized');
   }
 }
