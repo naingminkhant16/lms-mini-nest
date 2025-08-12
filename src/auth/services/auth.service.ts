@@ -11,6 +11,7 @@ import { LoginDto } from '../dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { env } from 'process';
 import { Response } from 'express';
+import { TokenBlacklistService } from './token-blacklist.service';
 
 @Injectable()
 export class AuthService {
@@ -18,6 +19,7 @@ export class AuthService {
     @InjectRepository(User) private userRepo: Repository<User>,
     private hashingService: HashingService,
     private jwtService: JwtService,
+    private tokenBlacklistService: TokenBlacklistService,
   ) {}
 
   async login(
@@ -45,7 +47,7 @@ export class AuthService {
       role: user.role,
     };
 
-    const accessToken = this.jwtService.sign(payload, { expiresIn: '1h' });
+    const accessToken = this.jwtService.sign(payload, { expiresIn: '15min' });
     const refreshToken = this.jwtService.sign(payload, { expiresIn: '24h' });
     return {
       accessToken,
@@ -58,6 +60,12 @@ export class AuthService {
   ): Promise<{ accessToken: string; newRefreshToken: string }> {
     const payload = await this.jwtService.verifyAsync(refreshToken);
     if (!payload) throw new UnauthorizedException('Invalid refresh token');
+
+    // check if token is blacklisted
+    const isBlacklisted =
+      await this.tokenBlacklistService.isTokenBlacklisted(refreshToken);
+    if (isBlacklisted)
+      throw new UnauthorizedException('Refresh token is blacklisted');
 
     const user = await this.userRepo.findOne({
       where: { id: payload.sub },
@@ -73,11 +81,14 @@ export class AuthService {
     };
 
     const newAccessToken = this.jwtService.sign(newPayload, {
-      expiresIn: '1h',
+      expiresIn: '15min',
     });
     const newRefreshToken = this.jwtService.sign(newPayload, {
       expiresIn: '24h',
     });
+
+    // black list the old refresh token
+    await this.tokenBlacklistService.blacklistToken(refreshToken, payload.exp);
 
     return {
       accessToken: newAccessToken,
@@ -92,5 +103,21 @@ export class AuthService {
       sameSite: 'strict',
       maxAge: 24 * 60 * 60 * 1000, // 24 hr
     });
+  }
+
+  async logout(refreshToken: string, res: Response): Promise<void> {
+    // Clear cookie
+    res.clearCookie('refresh_token', {
+      httpOnly: true,
+      secure: env.APP_ENV === 'production',
+      sameSite: 'strict',
+    });
+
+    // retrieve token payload
+    const payload = await this.jwtService.verifyAsync(refreshToken);
+    if (!payload) throw new UnauthorizedException('Invalid refresh token');
+
+    // Blacklist token
+    await this.tokenBlacklistService.blacklistToken(refreshToken, payload.exp);
   }
 }

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -38,6 +39,7 @@ export class AuthController {
   }
 
   @Post('/refresh-token')
+  @HttpCode(HttpStatus.OK)
   async refreshToken(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
@@ -45,10 +47,7 @@ export class AuthController {
     const refresh_token = req.cookies['refresh_token'];
 
     if (!refresh_token) {
-      return ApiResponse.error(
-        'Refresh token not found',
-        HttpStatus.UNAUTHORIZED,
-      );
+      throw new BadRequestException('Refresh token not found');
     }
 
     const { accessToken, newRefreshToken } =
@@ -67,5 +66,19 @@ export class AuthController {
   @Get('/test-auth')
   testAuth(@Req() req: Request) {
     return ApiResponse.success({ user: req['auth'] }, 'Authorized');
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('/logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const refresh_token = req.cookies['refresh_token'];
+
+    if (!refresh_token)
+      throw new BadRequestException('Refresh token not found');
+
+    await this.authService.logout(refresh_token, res);
+
+    return ApiResponse.success(null, 'Logout Successful');
   }
 }
