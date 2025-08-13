@@ -17,6 +17,8 @@ import { StudentQuizModule } from './student-quiz/student_quiz.module';
 import { LessonModule } from './lesson/lesson.module';
 import { ModuleModule } from './module/module.module';
 import { CommonModule } from './common/common.module';
+import { JwtModule } from '@nestjs/jwt';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -44,6 +46,12 @@ import { CommonModule } from './common/common.module';
     LessonModule,
     ModuleModule,
     CommonModule,
+    AuthModule,
+    JwtModule.register({
+      global: true,
+      secret: env.JWT_SECRET,
+      signOptions: { expiresIn: '1h' },
+    }),
   ],
   controllers: [AppController],
   providers: [AppService],
