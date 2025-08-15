@@ -18,8 +18,12 @@ export class ApiResponse<T> {
     this.statusCode = statusCode;
   }
 
-  static success<T>(data: T, message: string = 'success'): ApiResponse<T> {
-    return new ApiResponse<T>(data, message, true, HttpStatus.OK);
+  static success<T>(
+    data: T,
+    message: string = 'success',
+    status = HttpStatus.OK,
+  ): ApiResponse<T> {
+    return new ApiResponse<T>(data, message, true, status);
   }
 
   static error<T>(message: string, statusCode: number): ApiResponse<T> {

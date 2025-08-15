@@ -1,4 +1,5 @@
 import {
+  Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -6,7 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
-import { HashingService } from 'src/common/services/hashing.service';
+import { HashingService } from 'src/common/services/password/hashing.service';
 import { LoginDto } from '../dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
 import { env } from 'process';
@@ -26,7 +27,7 @@ export class AuthService {
     loginDto: LoginDto,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const user = await this.userRepo.findOne({
-      where: { email: loginDto.email },
+      where: { email: loginDto.email, emailVerified: true },
       relations: ['role'],
     });
     // User not found

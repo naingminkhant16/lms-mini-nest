@@ -1,5 +1,5 @@
 import { env } from 'process';
-import { HashingService } from 'src/common/services/hashing.service';
+import { HashingService } from 'src/common/services/password/hashing.service';
 import { Role } from 'src/role/entities/role.entity';
 import { UserRole } from 'src/role/enums/user-role.enum';
 import { User } from 'src/user/entities/user.entity';
