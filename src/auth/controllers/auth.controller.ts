@@ -19,7 +19,7 @@ import { AdminGuard } from 'src/common/guards/admin.guard';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Post('/login')
   @HttpCode(HttpStatus.OK)

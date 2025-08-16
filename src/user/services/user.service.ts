@@ -5,16 +5,19 @@ import { User } from '../entities/user.entity';
 import { Repository } from 'typeorm';
 import { UserRole } from 'src/role/enums/user-role.enum';
 import { Role } from 'src/role/entities/role.entity';
-import { MailerService } from '@nestjs-modules/mailer';
+import { HashingService } from 'src/common/services/password/hashing.service';
+import { MailService } from 'src/common/services/mail/mail.service';
+import { env } from 'process';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User)
-    private userRepo: Repository<User>,
+    private readonly userRepo: Repository<User>,
     @InjectRepository(Role)
-    private roleRepo: Repository<Role>,
-    private mailService: MailerService,
+    private readonly roleRepo: Repository<Role>,
+    private readonly hashingService: HashingService,
+    private readonly mailService: MailService,
   ) {}
 
   async create(createUserDto: CreateUserDto, role: UserRole): Promise<User> {
@@ -32,7 +35,7 @@ export class UserService {
     const user = this.userRepo.create({
       username: createUserDto.username,
       email: createUserDto.email,
-      password: createUserDto.password,
+      password: await this.hashingService.hashPassword(createUserDto.password),
       address: createUserDto.address,
       phoneNumber: createUserDto.phoneNumber,
       registrationDate: new Date(),
@@ -41,12 +44,19 @@ export class UserService {
 
     const instructor = await this.userRepo.save(user);
     // Send Verified Email
-    this.mailService.sendMail({
-      to: user.email,
-      subject: 'Welcome to LMS',
-      text: 'Welcome Message',
-    });
+    this.mailService.sendVerifyMail(
+      user.email,
+      user.username,
+      String(env.MAIL_VERIFY_URL) + '?token=123',
+    );
 
     return instructor;
+  }
+
+  findAllByRole(role: UserRole): Promise<User[]> {
+    return this.userRepo.find({
+      where: { role: { name: role } },
+      relations: ['role'],
+    });
   }
 }

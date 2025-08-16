@@ -19,7 +19,6 @@ import { ModuleModule } from './module/module.module';
 import { CommonModule } from './common/common.module';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthModule } from './auth/auth.module';
-import { MailerModule } from '@nestjs-modules/mailer';
 
 @Module({
   imports: [
@@ -52,16 +51,6 @@ import { MailerModule } from '@nestjs-modules/mailer';
       global: true,
       secret: env.JWT_SECRET,
       signOptions: { expiresIn: '1h' },
-    }),
-    MailerModule.forRoot({
-      transport: {
-        host: env.MAIL_HOST,
-        port: Number(env.MAIL_PORT),
-        auth: {
-          user: env.MAIL_USER,
-          pass: env.MAIL_PASS,
-        },
-      },
     }),
   ],
   controllers: [AppController],

@@ -1,5 +1,4 @@
 import {
-  Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -18,9 +17,9 @@ import { TokenBlacklistService } from './token-blacklist.service';
 export class AuthService {
   constructor(
     @InjectRepository(User) private userRepo: Repository<User>,
-    private hashingService: HashingService,
-    private jwtService: JwtService,
-    private tokenBlacklistService: TokenBlacklistService,
+    private readonly hashingService: HashingService,
+    private readonly jwtService: JwtService,
+    private readonly tokenBlacklistService: TokenBlacklistService,
   ) {}
 
   async login(
