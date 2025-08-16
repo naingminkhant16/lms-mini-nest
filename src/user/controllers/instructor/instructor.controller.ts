@@ -1,14 +1,17 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
+  Param,
   Post,
   UseGuards,
 } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { log } from 'console';
+import { isUUID } from 'class-validator';
 import { AdminGuard } from 'src/common/guards/admin.guard';
 import { AuthGuard } from 'src/common/guards/auth.guard';
 import { ApiResponse } from 'src/common/utils/api-response';
@@ -58,6 +61,27 @@ export class InstructorController {
         excludeExtraneousValues: true,
       }),
       'Instructors retrieved successfully',
+      HttpStatus.OK,
+    );
+  }
+
+  @Get(':id')
+  @UseGuards(AuthGuard, AdminGuard)
+  @HttpCode(HttpStatus.OK)
+  async getInstructorById(
+    @Param('id') id: string,
+  ): Promise<ApiResponse<UserResponseDto>> {
+    if (!isUUID(id)) throw new BadRequestException('Invalid instructor ID');
+
+    const instructor: User | null = await this.userService.findById(id);
+
+    if (!instructor) throw new NotFoundException('Instructor not found');
+
+    return ApiResponse.success(
+      plainToInstance(UserResponseDto, instructor, {
+        excludeExtraneousValues: true,
+      }),
+      'Instructor retrieved successfully',
       HttpStatus.OK,
     );
   }

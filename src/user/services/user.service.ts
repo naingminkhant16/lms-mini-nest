@@ -68,4 +68,11 @@ export class UserService {
       relations: ['role'],
     });
   }
+
+  findById(id: string): Promise<User | null> {
+    return this.userRepo.findOne({
+      where: { id },
+      relations: ['role'],
+    });
+  }
 }
