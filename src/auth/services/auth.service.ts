@@ -120,4 +120,15 @@ export class AuthService {
     // Blacklist token
     await this.tokenBlacklistService.blacklistToken(refreshToken, payload.exp);
   }
+
+  async verifyMail(token: string) {
+    const payload = await this.jwtService.verifyAsync(token);
+    if (!payload) throw new UnauthorizedException('Invalid verification token');
+
+    const user = await this.userRepo.findOne({ where: { id: payload.sub } });
+    if (!user) throw new NotFoundException('User not found');
+
+    user.emailVerified = true;
+    await this.userRepo.save(user);
+  }
 }

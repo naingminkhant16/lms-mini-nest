@@ -5,6 +5,7 @@ import nodemailerExpressHandlebars from 'nodemailer-express-handlebars';
 @Injectable()
 export class MailService {
   private transporter: nodemailer.Transporter;
+
   constructor() {
     this.transporter = nodemailer.createTransport({
       host: process.env.MAIL_HOST,
@@ -30,7 +31,11 @@ export class MailService {
     );
   }
 
-  async sendVerifyMail(to: string, name: string, callbackURL: string) {
+  async sendVerifyMail(
+    to: string,
+    name: string,
+    callbackURL: string,
+  ): Promise<void> {
     const mailOptions = {
       from: process.env.MAIL_FROM,
       to,
@@ -39,6 +44,10 @@ export class MailService {
       context: { name, callbackURL, year: new Date().getFullYear() },
     };
 
-    return this.transporter.sendMail(mailOptions);
+    try {
+      this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Error sending verification email:', error);
+    }
   }
 }

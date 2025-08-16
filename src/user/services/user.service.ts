@@ -8,6 +8,7 @@ import { Role } from 'src/role/entities/role.entity';
 import { HashingService } from 'src/common/services/password/hashing.service';
 import { MailService } from 'src/common/services/mail/mail.service';
 import { env } from 'process';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class UserService {
@@ -18,6 +19,7 @@ export class UserService {
     private readonly roleRepo: Repository<Role>,
     private readonly hashingService: HashingService,
     private readonly mailService: MailService,
+    private readonly jwtService: JwtService,
   ) {}
 
   async create(createUserDto: CreateUserDto, role: UserRole): Promise<User> {
@@ -43,11 +45,18 @@ export class UserService {
     });
 
     const instructor = await this.userRepo.save(user);
+
+    // Store verify-jwt-token
+    const verifyToken = await this.jwtService.signAsync(
+      { sub: user.id },
+      { expiresIn: '1h' },
+    );
+
     // Send Verified Email
-    this.mailService.sendVerifyMail(
+    await this.mailService.sendVerifyMail(
       user.email,
       user.username,
-      String(env.MAIL_VERIFY_URL) + '?token=123',
+      String(env.MAIL_VERIFY_URL) + '?token=' + verifyToken,
     );
 
     return instructor;
