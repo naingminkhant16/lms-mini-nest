@@ -7,7 +7,9 @@ import {
   HttpStatus,
   NotFoundException,
   Param,
+  ParseUUIDPipe,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
@@ -17,6 +19,7 @@ import { AuthGuard } from 'src/common/guards/auth.guard';
 import { ApiResponse } from 'src/common/utils/api-response';
 import { UserRole } from 'src/role/enums/user-role.enum';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
+import { UpdateUserDto } from 'src/user/dto/update-user.dto';
 import { UserResponseDto } from 'src/user/dto/user-response.dto';
 import { User } from 'src/user/entities/user.entity';
 import { InstructorService } from 'src/user/services/instructor/instructor.service';
@@ -82,6 +85,29 @@ export class InstructorController {
         excludeExtraneousValues: true,
       }),
       'Instructor retrieved successfully',
+      HttpStatus.OK,
+    );
+  }
+
+  @Put(':id')
+  @UseGuards(AuthGuard, AdminGuard)
+  @HttpCode(HttpStatus.OK)
+  async updateInstructorById(
+    @Body() updateUserDto: UpdateUserDto,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    if (!isUUID(id)) throw new BadRequestException('Invalid ID');
+
+    const updatedInstructor: User = await this.userService.update(
+      updateUserDto,
+      id,
+    );
+
+    return ApiResponse.success(
+      plainToInstance(UserResponseDto, updatedInstructor, {
+        excludeExtraneousValues: true,
+      }),
+      'Instructor updated successfully',
       HttpStatus.OK,
     );
   }

@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../entities/user.entity';
@@ -9,6 +13,9 @@ import { HashingService } from 'src/common/services/password/hashing.service';
 import { MailService } from 'src/common/services/mail/mail.service';
 import { env } from 'process';
 import { JwtService } from '@nestjs/jwt';
+import { UpdateUserDto } from '../dto/update-user.dto';
+import { UUID } from 'typeorm/driver/mongodb/bson.typings';
+import { error } from 'console';
 
 @Injectable()
 export class UserService {
@@ -33,33 +40,40 @@ export class UserService {
     });
     if (!userRole) throw new BadRequestException('Invalid user role');
 
-    // Store in DB
-    const user = this.userRepo.create({
-      username: createUserDto.username,
-      email: createUserDto.email,
-      password: await this.hashingService.hashPassword(createUserDto.password),
-      address: createUserDto.address,
-      phoneNumber: createUserDto.phoneNumber,
-      registrationDate: new Date(),
-      role: { id: userRole?.id },
-    });
+    try {
+      // Store in DB
+      const user = this.userRepo.create({
+        username: createUserDto.username,
+        email: createUserDto.email,
+        password: await this.hashingService.hashPassword(
+          createUserDto.password,
+        ),
+        address: createUserDto.address,
+        phoneNumber: createUserDto.phoneNumber,
+        registrationDate: new Date(),
+        role: { id: userRole?.id },
+      });
 
-    const instructor = await this.userRepo.save(user);
+      const instructor = await this.userRepo.save(user);
 
-    // Store verify-jwt-token
-    const verifyToken = await this.jwtService.signAsync(
-      { sub: user.id },
-      { expiresIn: '1h' },
-    );
+      // Store verify-jwt-token
+      const verifyToken = await this.jwtService.signAsync(
+        { sub: user.id },
+        { expiresIn: '1h' },
+      );
 
-    // Send Verified Email
-    await this.mailService.sendVerifyMail(
-      user.email,
-      user.username,
-      String(env.MAIL_VERIFY_URL) + '?token=' + verifyToken,
-    );
+      // Send Verified Email
+      await this.mailService.sendVerifyMail(
+        user.email,
+        user.username,
+        String(env.MAIL_VERIFY_URL) + '?token=' + verifyToken,
+      );
 
-    return instructor;
+      return instructor;
+    } catch (error) {
+      error(error);
+      throw new InternalServerErrorException('Failed to create register');
+    }
   }
 
   findAllByRole(role: UserRole): Promise<User[]> {
@@ -74,5 +88,23 @@ export class UserService {
       where: { id },
       relations: ['role'],
     });
+  }
+
+  async update(updateUserDto: UpdateUserDto, id: string): Promise<User> {
+    try {
+      await this.userRepo.update(id, {
+        ...updateUserDto,
+      });
+      const updatedUser = await this.userRepo.findOne({
+        where: { id },
+        relations: ['role'],
+      });
+      if (!updatedUser) throw new InternalServerErrorException();
+
+      return updatedUser;
+    } catch (err) {
+      error(err);
+      throw new InternalServerErrorException('Failed to update user');
+    }
   }
 }
