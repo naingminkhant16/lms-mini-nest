@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import nodemailerExpressHandlebars from 'nodemailer-express-handlebars';
 
@@ -48,6 +48,25 @@ export class MailService {
       this.transporter.sendMail(mailOptions);
     } catch (error) {
       console.error('Error sending verification email:', error);
+    }
+  }
+
+  async sendResetPasswordCode(email: string, code: string): Promise<void> {
+    const mailOptions = {
+      from: process.env.MAIL_FROM,
+      to: email,
+      subject: 'Password Reset Code',
+      template: 'reset-password',
+      context: { code, year: new Date().getFullYear() },
+    };
+
+    try {
+      this.transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Error sending reset password email:', error);
+      throw new InternalServerErrorException(
+        'Error sending reset password email',
+      );
     }
   }
 }

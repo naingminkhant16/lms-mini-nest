@@ -1,5 +1,7 @@
 import {
+  BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -12,6 +14,8 @@ import { JwtService } from '@nestjs/jwt';
 import { env } from 'process';
 import { Response } from 'express';
 import { TokenBlacklistService } from './token-blacklist.service';
+import { MailService } from 'src/common/services/mail/mail.service';
+import { RedisService } from 'src/common/services/redis/redis.service';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +24,8 @@ export class AuthService {
     private readonly hashingService: HashingService,
     private readonly jwtService: JwtService,
     private readonly tokenBlacklistService: TokenBlacklistService,
+    private readonly mailService: MailService,
+    private readonly redisService: RedisService,
   ) {}
 
   async login(
@@ -131,4 +137,47 @@ export class AuthService {
     user.emailVerified = true;
     await this.userRepo.save(user);
   }
+
+  async sendPasswordResetCode(email: string): Promise<void> {
+    const user = await this.userRepo.findOne({ where: { email } });
+    if (!user) throw new NotFoundException('Email is invalid');
+
+    const code = this.generatePasswordResetCode();
+
+    // Set code in Redis cache for 5mins
+    await this.redisService.getClient().set(email, code, 'EX', 300);
+
+    this.mailService.sendResetPasswordCode(email, code);
+  }
+
+  // Generate 4 digits code
+  private generatePasswordResetCode(): string {
+    const code = Math.floor(Math.random() * (9999 - 1000 + 1)) + 1000;
+    return code.toString();
+  }
+
+  async resetPassword(
+    email: string,
+    code: string,
+    newPassword: string,
+  ): Promise<void> {
+    const cachedCode = await this.redisService.getClient().get(email);
+    if (!cachedCode) throw new BadRequestException('Invalid or expired code');
+
+    if (cachedCode !== code) throw new BadRequestException('Invalid code');
+
+    const user = await this.userRepo.findOne({ where: { email } });
+    if (!user) throw new NotFoundException('User not found');
+
+    try {
+      user.password = await this.hashingService.hashPassword(newPassword);
+      await this.userRepo.save(user);
+      // Remove code from Redis
+      await this.redisService.getClient().del(email);
+    } catch (error) {
+      console.error(error);
+      throw new InternalServerErrorException('Failed to reset password');
+    }
+  }
+  // TODO: write test cases for Auth endpoints
 }

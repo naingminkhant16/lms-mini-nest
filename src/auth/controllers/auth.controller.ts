@@ -17,6 +17,7 @@ import { ApiResponse } from 'src/common/utils/api-response';
 import { Request, Response } from 'express';
 import { AuthGuard } from 'src/common/guards/auth.guard';
 import { AdminGuard } from 'src/common/guards/admin.guard';
+import { ResetPasswordDto } from '../dto/reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -63,7 +64,7 @@ export class AuthController {
   }
 
   // Test Auth Middleware / access authorized resource
-  @UseGuards(AuthGuard, AdminGuard)
+  @UseGuards(AuthGuard)
   @Get('/test-auth')
   testAuth(@Req() req: Request) {
     return ApiResponse.success({ user: req['auth'] }, 'Authorized');
@@ -91,5 +92,33 @@ export class AuthController {
   async verifyMail(@Query('token') token: string): Promise<ApiResponse<null>> {
     await this.authService.verifyMail(token);
     return ApiResponse.success(null, 'Email verified successfully');
+  }
+
+  // Request password reset code
+  @Post('/request-password-reset-code')
+  @HttpCode(HttpStatus.OK)
+  async requestPasswordResetCode(
+    @Body('email') email: string,
+  ): Promise<ApiResponse<null>> {
+    await this.authService.sendPasswordResetCode(email);
+    return ApiResponse.success(null, 'Password reset code sent');
+  }
+
+  // Verify code  and reset password
+  @Post('/reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(
+    @Body() resetPasswordDto: ResetPasswordDto,
+  ): Promise<ApiResponse<null>> {
+    if (resetPasswordDto.newPassword !== resetPasswordDto.confirmPassword)
+      throw new BadRequestException('Passwords do not match');
+
+    await this.authService.resetPassword(
+      resetPasswordDto.email,
+      resetPasswordDto.code,
+      resetPasswordDto.newPassword,
+    );
+
+    return ApiResponse.success(null, 'Password reset successfully');
   }
 }
